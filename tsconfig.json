@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",              // modern JS
+    "module": "NodeNext",            // pure ESM
+    "moduleResolution": "nodenext",   // for ESM imports
+    "noEmit": false,
+    "declaration": true,             // emit .d.ts files
+    "outDir": "dist",                // compiled files go here
+    "rootDir": "src",                // TS sources live under src/
+    "strict": true,                  // strict type-checks
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src"]
+}

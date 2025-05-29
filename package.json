@@ -1,0 +1,33 @@
+{
+  "name": "react-signal",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/core/index.js"
+  },
+  "types": "./dist/core/index.d.ts",
+    "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch",
+    "start": "npm run build && node dist/core/index.js"
+  },
+  
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/momozadani/React-Signal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/momozadani/React-Signal/issues"
+  },
+  "homepage": "https://github.com/momozadani/React-Signal#readme",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.15.24",
+    "cross-env": "^7.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
