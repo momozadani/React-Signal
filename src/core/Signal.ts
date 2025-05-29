@@ -14,7 +14,6 @@ export class Signal<T> {
     const prevState = this._state
     this._state = updater(prevState)
 
-    // Only flush if state actually changed
     if (this._state !== prevState) {
       this.flush()
     }

@@ -5,11 +5,10 @@ const count = new Signal(0)
 const name = new Signal('John')
 
 const logEffect = new Effect({
-  deps: [count, name],
-  fn: () => {
-    console.log(`Count: ${count.state}, Name: ${name.state}`)
+  deps: [count,name],
+  effectFn: (some,another) => {
+    console.log(`Count: ${some}, Name: ${another}`)
   }
 })
 
-logEffect.mount()
 count.setState(prev => prev + 1)
