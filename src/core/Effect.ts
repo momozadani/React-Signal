@@ -1,61 +1,74 @@
-import { Computed } from "./Computed.js"
-import { Signal } from "./Signal.js"
+import { Computed } from "./Computed.js";
+import { Signal } from "./Signal.js";
 
+type ExtractDependencyValues<
+  T extends Record<string, Signal<any> | Computed<any, any>>
+> = {
+  [K in keyof T]: T[K] extends Signal<infer U>
+    ? U
+    : T[K] extends Computed<infer U, any>
+    ? U
+    : never;
+};
 
-export interface EffectOptions<T extends readonly unknown[]> {
-  deps: (Signal<any> | Computed<any>)[]
-  effectFn: (...values: T) => void
-  eager?: boolean
+export interface EffectOptions<
+  TDeps extends Record<string, Signal<any> | Computed<any, any>>
+> {
+  deps: TDeps;
+  effectFn: (values: ExtractDependencyValues<TDeps>) => void;
+  eager?: boolean;
 }
 
-export class Effect {
-  private _computed: Computed<void>
-  private _fn: (...values: any[]) => void
-  private _cleanup?: () => void
+export class Effect<
+  TDeps extends Record<string, Signal<any> | Computed<any, any>>
+> {
+  private _computed: Computed<void, TDeps>;
+  private _fn: (values: ExtractDependencyValues<TDeps>) => void;
+  private _cleanup?: () => void;
 
-  constructor(opts: EffectOptions<any>) {
-    const { eager = true, effectFn, deps } = opts
-    this._fn = effectFn
+  constructor(opts: EffectOptions<TDeps>) {
+    const { eager = true, effectFn, deps } = opts;
+    this._fn = effectFn;
 
-    // Create a computed that triggers our effect
-    this._computed = new Computed({
+    // Explicitly type the Computed since we know the return type is void
+    this._computed = new Computed<void, TDeps>({
       deps,
       computationFn: () => {
-        // Don't run the effect during initial computation
-        return undefined
-      }
-    })
+        return undefined;
+      },
+    });
 
-    // Subscribe to the computed to run effects
     this._cleanup = this._computed.subscribe(() => {
-      this._runEffect()
-    })
+      this._runEffect();
+    });
 
-    // Run immediately if eager
     if (eager) {
-      this._runEffect()
+      this._runEffect();
     }
   }
 
   private _runEffect(): void {
     try {
-      // Get current values from all dependencies
-      const currentValues = this._computed['_options'].deps.map(dep => dep.state)
-      // Pass values to the effect function
-      this._fn(...currentValues)
+      const currentValues: Record<string, any> = {};
+      for (const [key, dep] of Object.entries(
+        this._computed["_options"].deps
+      )) {
+        currentValues[key] = dep.state;
+      }
+      this._fn(currentValues as ExtractDependencyValues<TDeps>);
     } catch (error) {
-      console.error('Effect error:', error)
+      console.error("Effect error:", error);
     }
   }
 
   mount() {
     return () => {
-      this.dispose()
-    }
+      this.dispose();
+    };
   }
 
   dispose(): void {
-    this._cleanup?.()
-    this._computed.dispose()
+    this._cleanup?.();
+    this._computed.dispose();
   }
 }

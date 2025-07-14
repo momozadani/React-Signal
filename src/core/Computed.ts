@@ -1,81 +1,103 @@
-import { Signal } from "./Signal.js"
+import { Signal } from "./Signal.js";
 
-export interface ComputedOptions<T> {
-  deps: (Signal<any> | Computed<any>)[]
-  computationFn: (...values: any[]) => T
+// Type helper to extract values from dependency object
+type ExtractDependencyValues<
+  T extends Record<string, Signal<any> | Computed<any, any>>
+> = {
+  [K in keyof T]: T[K] extends Signal<infer U>
+    ? U
+    : T[K] extends Computed<infer U, any>
+    ? U
+    : never;
+};
+
+export interface ComputedOptions<
+  T,
+  TDeps extends Record<string, Signal<any> | Computed<any, any>>
+> {
+  deps: TDeps;
+  computationFn: (values: ExtractDependencyValues<TDeps>) => T;
 }
 
-export class Computed<T> {
-  private _state: T
-  private _listeners = new Set<() => void>()
-  private _options: ComputedOptions<T>
-  private _subscriptions: (() => void)[] = []
-  private _lastSeenDepValues: Array<unknown> = []
+export class Computed<
+  T,
+  TDeps extends Record<string, Signal<any> | Computed<any, any>>
+> {
+  private _state: T;
+  private _listeners = new Set<() => void>();
+  private _options: ComputedOptions<T, TDeps>;
+  private _subscriptions: (() => void)[] = [];
+  private _lastSeenDepValues: Record<string, unknown> = {};
 
-  constructor(options: ComputedOptions<T>) {
-    this._options = options
-    
-    this._state = this._computeValue()
-    
-    this._subscribeToDependencies()
+  constructor(options: ComputedOptions<T, TDeps>) {
+    this._options = options;
+    this._state = this._computeValue();
+    this._subscribeToDependencies();
   }
 
   get state(): T {
-    return this._state
+    return this._state;
   }
 
   subscribe(listener: () => void): () => void {
-    this._listeners.add(listener)
+    this._listeners.add(listener);
     return () => {
-      this._listeners.delete(listener)
-    }
+      this._listeners.delete(listener);
+    };
   }
 
   private _computeValue(): T {
-    const currentValues = this._options.deps.map(dep => dep.state)
-    this._lastSeenDepValues = [...currentValues]
-    return this._options.computationFn(...currentValues)
+    const currentValues: Record<string, any> = {};
+
+    for (const [key, dep] of Object.entries(this._options.deps)) {
+      currentValues[key] = dep.state;
+    }
+
+    this._lastSeenDepValues = { ...currentValues };
+    return this._options.computationFn(
+      currentValues as ExtractDependencyValues<TDeps>
+    );
   }
 
   private _subscribeToDependencies(): void {
-    this._options.deps.forEach(dep => {
+    for (const [key, dep] of Object.entries(this._options.deps)) {
       const unsubscribe = dep.subscribe(() => {
-        this._checkAndRecompute()
-      })
-      this._subscriptions.push(unsubscribe)
-    })
+        this._checkAndRecompute();
+      });
+      this._subscriptions.push(unsubscribe);
+    }
   }
 
   private _checkAndRecompute(): void {
-    const currentValues = this._options.deps.map(dep => dep.state)
-    
-    let hasChanged = false
-    for (let i = 0; i < currentValues.length; i++) {
-      if (currentValues[i] !== this._lastSeenDepValues[i]) {
-        hasChanged = true
-        break
+    const currentValues: Record<string, any> = {};
+    let hasChanged = false;
+
+    for (const [key, dep] of Object.entries(this._options.deps)) {
+      currentValues[key] = dep.state;
+      if (currentValues[key] !== this._lastSeenDepValues[key]) {
+        hasChanged = true;
       }
     }
 
     if (hasChanged) {
-      this._state = this._computeValue()
-      this._flush()
+      this._state = this._computeValue();
+      this._flush();
     }
   }
 
   private _flush(): void {
-    this._listeners.forEach(listener => {
+    this._listeners.forEach((listener) => {
       try {
-        listener()
+        listener();
       } catch (error) {
-        console.error('Computed listener error:', error)
+        console.error("Computed listener error:", error);
       }
-    })
+    });
   }
 
   dispose(): void {
-    this._subscriptions.forEach(unsubscribe => unsubscribe())
-    this._subscriptions = []
-    this._listeners.clear()
+    this._subscriptions.forEach((unsubscribe) => unsubscribe());
+    this._subscriptions = [];
+    this._listeners.clear();
   }
 }
