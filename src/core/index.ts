@@ -9,13 +9,21 @@ const cartTotal = new Computed({
   deps: { count, name, secondName },
   computationFn: ({ count, name, secondName }) => {
     const val = count + name + secondName.first;
-    return val;
+    return { val };
+  },
+});
+
+const cartTotal2 = new Computed({
+  deps: { cartTotal },
+  computationFn: ({ cartTotal }) => {
+    console.log("cartTotal2", cartTotal);
+    return cartTotal.val + 3;
   },
 });
 
 const logEffect = new Effect({
-  deps: { cartTotal, name },
-  effectFn: ({ cartTotal, name }) => {
+  deps: { cartTotal, name, cartTotal2 },
+  effectFn: ({ cartTotal, name, cartTotal2 }) => {
     console.log("test", cartTotal, name);
   },
 });
